@@ -18,6 +18,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.arguments.TimeArgument;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -57,87 +58,87 @@ public class OpacBluemapIntegration implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> minecraftServer = null);
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(literal("opac-bluemap")
-                .requires(s -> s.hasPermission(2))
-                .then(literal("refresh-now")
-                    .requires(s -> BlueMapAPI.getInstance().isPresent())
-                    .executes(ctx -> {
-                        final BlueMapAPI api = BlueMapAPI.getInstance().orElse(null);
-                        if (api == null) {
-                            ctx.getSource().sendFailure(Component.literal("BlueMap not loaded").withStyle(ChatFormatting.RED));
-                            return 0;
-                        }
-                        updateClaims(api);
-                        ctx.getSource().sendSuccess(
-                            Component.literal("BlueMap OPaC claims refreshed").withStyle(ChatFormatting.GREEN),
-                            true
-                        );
-                        return Command.SINGLE_SUCCESS;
-                    })
-                )
-                .then(literal("refresh-in")
-                    .executes(ctx -> {
-                        ctx.getSource().sendSuccess(
-                            Component.literal("OPaC BlueMap will refresh in ").append(
-                                Component.literal((updateIn / 20) + "s").withStyle(ChatFormatting.GREEN)
-                            ),
-                            true
-                        );
-                        return Command.SINGLE_SUCCESS;
-                    })
-                    .then(argument("time", TimeArgument.time())
-                        .executes(ctx -> {
-                            updateIn = IntegerArgumentType.getInteger(ctx, "time");
-                            ctx.getSource().sendSuccess(
-                                Component.literal("OPaC BlueMap will refresh in ").append(
-                                    Component.literal((updateIn / 20) + "s").withStyle(ChatFormatting.GREEN)
-                                ),
-                                true
-                            );
-                            return Command.SINGLE_SUCCESS;
-                        })
+                    .requires(s -> s.hasPermission(2))
+                    .then(literal("refresh-now")
+                            .requires(s -> BlueMapAPI.getInstance().isPresent())
+                            .executes(ctx -> {
+                                final BlueMapAPI api = BlueMapAPI.getInstance().orElse(null);
+                                if (api == null) {
+                                    ctx.getSource().sendFailure(Component.literal("BlueMap not loaded").withStyle(ChatFormatting.RED));
+                                    return 0;
+                                }
+                                updateClaims(api);
+                                ctx.getSource().sendSuccess(
+                                        () -> Component.literal("BlueMap OPaC claims refreshed").withStyle(ChatFormatting.GREEN),
+                                        true
+                                );
+                                return Command.SINGLE_SUCCESS;
+                            })
                     )
-                )
-                .then(literal("refresh-every")
-                    .executes(ctx -> {
-                        ctx.getSource().sendSuccess(
-                            Component.literal("OPaC BlueMap auto refreshes every ").append(
-                                Component.literal((CONFIG.getUpdateInterval() / 20) + "s").withStyle(ChatFormatting.GREEN)
-                            ),
-                            true
-                        );
-                        return Command.SINGLE_SUCCESS;
-                    })
-                    .then(argument("interval", TimeArgument.time())
-                        .executes(ctx -> {
-                            final int interval = IntegerArgumentType.getInteger(ctx, "interval");
-                            CONFIG.setUpdateInterval(interval);
-                            if (interval < updateIn) {
-                                updateIn = interval;
-                            }
-                            saveConfig();
-                            ctx.getSource().sendSuccess(
-                                Component.literal("OPaC BlueMap will auto refresh every ").append(
-                                    Component.literal((interval / 20) + "s").withStyle(ChatFormatting.GREEN)
-                                ),
-                                true
-                            );
-                            return Command.SINGLE_SUCCESS;
-                        })
+                    .then(literal("refresh-in")
+                            .executes(ctx -> {
+                                ctx.getSource().sendSuccess(
+                                        () -> Component.literal("OPaC BlueMap will refresh in ").append(
+                                                Component.literal((updateIn / 20) + "s").withStyle(ChatFormatting.GREEN)
+                                        ),
+                                        true
+                                );
+                                return Command.SINGLE_SUCCESS;
+                            })
+                            .then(argument("time", TimeArgument.time())
+                                    .executes(ctx -> {
+                                        updateIn = IntegerArgumentType.getInteger(ctx, "time");
+                                        ctx.getSource().sendSuccess(
+                                                () -> Component.literal("OPaC BlueMap will refresh in ").append(
+                                                        Component.literal((updateIn / 20) + "s").withStyle(ChatFormatting.GREEN)
+                                                ),
+                                                true
+                                        );
+                                        return Command.SINGLE_SUCCESS;
+                                    })
+                            )
                     )
-                )
-                .then(literal("reload")
-                    .executes(ctx -> {
-                        loadConfig();
-                        if (CONFIG.getUpdateInterval() < updateIn) {
-                            updateIn = CONFIG.getUpdateInterval();
-                        }
-                        ctx.getSource().sendSuccess(
-                            Component.literal("Reloaded OPaC BlueMap config").withStyle(ChatFormatting.GREEN),
-                            true
-                        );
-                        return Command.SINGLE_SUCCESS;
-                    })
-                )
+                    .then(literal("refresh-every")
+                            .executes(ctx -> {
+                                ctx.getSource().sendSuccess(
+                                        () -> Component.literal("OPaC BlueMap auto refreshes every ").append(
+                                                Component.literal((CONFIG.getUpdateInterval() / 20) + "s").withStyle(ChatFormatting.GREEN)
+                                        ),
+                                        true
+                                );
+                                return Command.SINGLE_SUCCESS;
+                            })
+                            .then(argument("interval", TimeArgument.time())
+                                    .executes(ctx -> {
+                                        final int interval = IntegerArgumentType.getInteger(ctx, "interval");
+                                        CONFIG.setUpdateInterval(interval);
+                                        if (interval < updateIn) {
+                                            updateIn = interval;
+                                        }
+                                        saveConfig();
+                                        ctx.getSource().sendSuccess(
+                                                () -> Component.literal("OPaC BlueMap will auto refresh every ").append(
+                                                        Component.literal((interval / 20) + "s").withStyle(ChatFormatting.GREEN)
+                                                ),
+                                                true
+                                        );
+                                        return Command.SINGLE_SUCCESS;
+                                    })
+                            )
+                    )
+                    .then(literal("reload")
+                            .executes(ctx -> {
+                                loadConfig();
+                                if (CONFIG.getUpdateInterval() < updateIn) {
+                                    updateIn = CONFIG.getUpdateInterval();
+                                }
+                                ctx.getSource().sendSuccess(
+                                        () -> Component.literal("Reloaded OPaC BlueMap config").withStyle(ChatFormatting.GREEN),
+                                        true
+                                );
+                                return Command.SINGLE_SUCCESS;
+                            })
+                    )
             );
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -190,7 +191,7 @@ public class OpacBluemapIntegration implements ModInitializer {
                 }
                 final String displayName = name;
                 playerClaimInfo.getStream().forEach(entry -> {
-                    final BlueMapWorld world = blueMap.getWorld(ResourceKey.create(Registry.DIMENSION_REGISTRY, entry.getKey())).orElse(null);
+                    final BlueMapWorld world = blueMap.getWorld(ResourceKey.create(Registries.DIMENSION, entry.getKey())).orElse(null);
                     if (world == null) return;
                     final List<ShapeHolder> shapes = createShapes(
                         entry.getValue()
